@@ -1,7 +1,7 @@
 version: '3'
 services:
-  ail-feeder-template:
-    image: ail-feeder-template
+  ail-feeder-telegram:
+    image: ail-feeder-telegram
     build:
       context: .
     env_file:

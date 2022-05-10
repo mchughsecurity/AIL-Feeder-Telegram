@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo docker run -it --rm --name ail-feeder-template-task ail-feeder-template
+sudo docker run -it --rm --name ail-feeder-telegram-task ail-feeder-telegram
