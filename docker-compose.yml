@@ -1,0 +1,10 @@
+version: '3'
+services:
+  ail-feeder-template:
+    image: ail-feeder-template
+    build:
+      context: .
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/storage
