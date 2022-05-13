@@ -1,2 +1,2 @@
 /.env
-/storage/session_file.session
+/storage/*.session
