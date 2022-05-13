@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import redis
@@ -19,105 +20,71 @@ from telethon.errors.rpcerrorlist import ChatAdminRequiredError, UserNotParticip
 from telethon.errors.rpcerrorlist import InviteHashExpiredError, InviteHashInvalidError
 from telethon.errors.common import MultiError
 
+FEEDER_UUID = os.getenv('FEEDER_UUID')
+FEEDER_NAME = os.getenv('FEEDER_NAME')
+FEEDER_ENABLED = os.getenv('FEEDER_ENABLED')
 
-class TelegramFeeder:
-    def __init__(self):
-        self.FEEDER_UUID = os.getenv('FEEDER_UUID')
-        self.FEEDER_NAME = os.getenv('FEEDER_NAME')
-        self.FEEDER_ENABLED = os.getenv('FEEDER_ENABLED')
+AIL_URL = os.getenv('AIL_URL')
+AIL_KEY = os.getenv('AIL_KEY')
+AIL_SSLVERIFY = os.getenv('AIL_SSLVERIFY')
 
-        self.AIL_URL = os.getenv('AIL_URL')
-        self.AIL_KEY = os.getenv('AIL_KEY')
-        self.AIL_SSLVERIFY = os.getenv('AIL_SSLVERIFY')
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
+REDIS_DB = os.getenv('REDIS_DB')
 
-        self.REDIS_HOST = os.getenv('REDIS_HOST')
-        self.REDIS_PORT = os.getenv('REDIS_PORT')
-        self.REDIS_DB = os.getenv('REDIS_DB')
-        self.REDIS = redis.Redis(host=self.REDIS_HOST, port=self.REDIS_PORT, db=self.REDIS_DB)
+TELEGRAM_API = os.getenv('TELEGRAM_API')
+TELEGRAM_HASH = os.getenv('TELEGRAM_HASH')
+TELEGRAM_SESSION = os.getenv('TELEGRAM_SESSION')
 
-        self.TELEGRAM_API = os.getenv('TELEGRAM_API')
-        self.TELEGRAM_HASH = os.getenv('TELEGRAM_HASH')
-        self.TELEGRAM_SESSION = os.getenv('TELEGRAM_SESSION')
+PYAIL = PyAIL(AIL_URL, AIL_KEY, ssl=False)
+REDIS = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+TELEGRAM = TelegramClient(TELEGRAM_SESSION, TELEGRAM_API, TELEGRAM_HASH)
 
-        try:
-
-            logging.info("Creating test payload...\n")
-            test_payload = 'Test string being submitted to AIL via PyAIL';
-            test_payload_meta = {'some_attribute': 'some value'}
-
-            logging.info("Testing connection to AIL...\n")
-            self.PYAIL = PyAIL(self.AIL_URL, self.AIL_KEY, ssl=False)
-
-            logging.info("Sending TEST payload {} with API Key {}. SSL Verify {}.\n".format(self.AIL_URL, self.AIL_KEY,
-                                                                                            self.AIL_SSLVERIFY))
-
-            # Send the test payload to AIL
-            self.send_to_ail(data=test_payload, meta=test_payload_meta)
-
-        except Exception as e:
-            print(e)
-            sys.exit(0)
-
-    def connect_telegram(self):
-        self.TELEGRAM = TelegramClient(self.TELEGRAM_SESSION, self.TELEGRAM_API, self.TELEGRAM_HASH)
-        self.TELEGRAM.start()
-        if not self.TELEGRAM.is_connected():
-            logging.info("Telegram connection error!\n")
-            sys.exit(0)
-        return
-
-    async def get_active_channels(self):
-        active_channels = []
-        async for dialog_obj in self.TELEGRAM.iter_dialogs():
-            if not dialog_obj.is_user:
-                channel_id = dialog_obj.id
-                active_channels.append(channel_id)
-        return active_channels
-
-    async def get_channel_admins(self, channel):
-        try:
-            channel_admins = []
-            async for user in self.TELEGRAM.iter_participants(channel, filter=ChannelParticipantsAdmins):
-                channel_admins.append(user)
-        except ChatAdminRequiredError:
-            print(f'Error, {channel}: Chat admin privileges required')
-        return channel_admins
-
-    async def get_channel_users(self, channel):
-        return
-
-    async def get_channel_messages(self):
-        return
-
-    def construct_item_text(self, type, tags, text):
-        ail_data = {
-            'type': type,
-            'tags': tags,
-            'text': text
-        }
-        return ail_data
-
-    def send_to_ail(self, data, meta):
-        try:
-            response = self.PYAIL.feed_json_item(
-                data=data,
-                meta=meta,
-                source=self.FEEDER_NAME,
-                source_uuid=self.FEEDER_UUID
-            )
-            logging.info("Packet has been sent to AIL\n")
-        except Exception as e:
-            print(e)
-            sys.exit(0)
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s:%(message)s', level=logging.INFO, datefmt='%I:%M:%S')
 
 
-if __name__ == "__main__":
-    logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s:%(message)s', level=logging.INFO, datefmt='%I:%M:%S')
-    Feeder = TelegramFeeder()
+async def main():
+    # me = await TELEGRAM.get_me()
 
-    # TODO: Check for the existence of a session file, if exists, use it for authentication.
+    # Get Active Channels
+    async for conversation in TELEGRAM.iter_dialogs():
+        print(conversation.name, 'has ID', conversation.id, '\n')
 
-    Feeder.connect_telegram()
-    if Feeder.TELEGRAM.is_connected():
-        logging.info("Telegram is connected.\n")
-        # TODO: Check for session file, and save from this session if it does not exist.
+        # Get Messages from Active Channels
+        async for message in TELEGRAM.iter_messages(entity=conversation.id):
+            message_id = FEEDER_NAME + '-' + str(conversation.id) + '-' + str(message.id)
+            message_link = 'https://t.me/' + conversation.entity.username + '/' + str(message.id)
+
+            # Create meta-data for Telegram Message
+            message_meta = {
+                'telegram:message_id': message.id,
+                'telegram:conversation_id': conversation.id,
+                'telegram:message_datetime': message.date.strftime('%d/%m/%Y %H:%M:%S %Z'),
+                'telegram:conversation': conversation.entity.username,
+                'telegram:message_link': message_link
+            }
+            # print(json_message)
+
+            # Check the Redis cache
+            if REDIS.exists("c:{}".format(message_id)):
+                print(message_id + ' already exists in Redis.')
+                # sys.exit(0)
+            else:
+                # Set in Redis and send to AIL
+                REDIS.set("c:{}".format(message_id), message.text)
+                REDIS.expire("c:{}".format(message_id), 3600)
+                print(message_id + ' has been added to Redis')
+
+                ail_response = PYAIL.feed_json_item(
+                    data=message.text,
+                    meta=message_meta,
+                    source=FEEDER_NAME,
+                    source_uuid=FEEDER_UUID
+                )
+
+                print(ail_response)
+                # sys.exit(0)
+
+
+with TELEGRAM:
+    TELEGRAM.loop.run_until_complete(main())
