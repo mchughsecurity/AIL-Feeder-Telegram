@@ -68,6 +68,7 @@ async def main():
             # Check the Redis cache
             if REDIS.exists("c:{}".format(message_id)):
                 print(message_id + ' already exists in Redis.')
+                REDIS.expire("c:{}".format(message_id), 3600)
                 # sys.exit(0)
             else:
                 # Set in Redis and send to AIL
@@ -83,7 +84,9 @@ async def main():
                         source_uuid=FEEDER_UUID
                     )
 
-                    print(ail_response)
+                    print(message_id + ' has been sent to AIL')
+
+                    # print(ail_response)
                 except Exception as e:
                     print(e)
                     # sys.exit(0)
