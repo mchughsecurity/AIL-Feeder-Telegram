@@ -71,19 +71,22 @@ async def main():
                 # sys.exit(0)
             else:
                 # Set in Redis and send to AIL
-                REDIS.set("c:{}".format(message_id), message.text)
-                REDIS.expire("c:{}".format(message_id), 3600)
-                print(message_id + ' has been added to Redis')
+                try:
+                    REDIS.set("c:{}".format(message_id), message.text)
+                    REDIS.expire("c:{}".format(message_id), 3600)
+                    print(message_id + ' has been added to Redis')
 
-                ail_response = PYAIL.feed_json_item(
-                    data=message.text,
-                    meta=message_meta,
-                    source=FEEDER_NAME,
-                    source_uuid=FEEDER_UUID
-                )
+                    ail_response = PYAIL.feed_json_item(
+                        data=message.text,
+                        meta=message_meta,
+                        source=FEEDER_NAME,
+                        source_uuid=FEEDER_UUID
+                    )
 
-                print(ail_response)
-                # sys.exit(0)
+                    print(ail_response)
+                except Exception as e:
+                    print(e)
+                    # sys.exit(0)
 
 
 with TELEGRAM:
