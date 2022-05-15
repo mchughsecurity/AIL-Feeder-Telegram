@@ -1,9 +1,14 @@
-name: Docker Build and Push
+name: Docker Build and Push (DockerHub)
 
 on:
+  schedule:
+    - cron: '33 12 * * *'
   push:
-    branches:
-      - 'production'
+    branches: [ production ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ production ]
 
 jobs:
   docker:

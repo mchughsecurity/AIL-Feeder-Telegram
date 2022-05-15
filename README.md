@@ -1,5 +1,8 @@
 # AIL-Feeder-Telegram
 
+[![Docker Build and Push (GHCR.io)](https://github.com/adammchugh/AIL-Feeder-Telegram/actions/workflows/docker-build-github.yml/badge.svg?branch=production)](https://github.com/adammchugh/AIL-Feeder-Telegram/actions/workflows/docker-build-github.yml)
+[![Docker Build and Push (DockerHub)](https://github.com/adammchugh/AIL-Feeder-Telegram/actions/workflows/docker-build-dockerhub.yml/badge.svg?branch=production)](https://github.com/adammchugh/AIL-Feeder-Telegram/actions/workflows/docker-build-dockerhub.yml)
+
 A newly rewritten AIL Feeder for Telegram conversations.
 
 ## Quickstart
