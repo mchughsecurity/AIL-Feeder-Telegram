@@ -53,7 +53,7 @@ async def main():
         # Get Messages from Active Channels
         async for message in TELEGRAM.iter_messages(entity=conversation.id):
             message_id = FEEDER_NAME + '-' + str(conversation.id) + '-' + str(message.id)
-            message_link = 'https://t.me/' + conversation.entity.username + '/' + str(message.id)
+            message_link = 'https://t.me/' + str(conversation.entity.username) + '/' + str(message.id)
 
             # Create meta-data for Telegram Message
             message_meta = {
