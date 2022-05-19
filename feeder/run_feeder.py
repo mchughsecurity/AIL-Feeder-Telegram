@@ -54,15 +54,20 @@ async def main():
 
         # Get Messages from Active Channels
         async for message in TELEGRAM.iter_messages(entity=conversation.id):
-            message_id = FEEDER_NAME + '-' + str(conversation.id) + '-' + str(message.id)
-            message_link = 'https://t.me/' + str(conversation.entity.username) + '/' + str(message.id)
+            try:
+                message_id = FEEDER_NAME + '-' + str(conversation.id) + '-' + str(message.id)
+                message_link = 'https://t.me/' + str(conversation.entity.username) + '/' + str(message.id)
+                message_conversation = str(conversation.entity.username)
+            except Exception as e:
+                print(e)
+                sys.exit(0)
 
             # Create meta-data for Telegram Message
             message_meta = {
-                'telegram:message_id': message.id,
-                'telegram:conversation_id': conversation.id,
+                'telegram:message_id': str(message.id),
+                'telegram:conversation_id': str(conversation.id),
                 'telegram:message_datetime': message.date.strftime('%d/%m/%Y %H:%M:%S %Z'),
-                'telegram:conversation': conversation.entity.username,
+                'telegram:conversation': message_conversation,
                 'telegram:message_link': message_link
             }
             # print(json_message)
