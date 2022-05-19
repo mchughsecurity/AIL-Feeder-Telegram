@@ -1,3 +1,5 @@
+import io
+from contextlib import redirect_stdout
 import json
 import os
 import sys
@@ -77,12 +79,15 @@ async def main():
                     REDIS.expire("c:{}".format(message_id), 3600)
                     print(message_id + ' has been added to Redis')
 
-                    ail_response = PYAIL.feed_json_item(
-                        data=message.text,
-                        meta=message_meta,
-                        source=FEEDER_NAME,
-                        source_uuid=FEEDER_UUID
-                    )
+                    f = io.StringIO()
+                    with redirect_stdout(f):
+                        ail_response = PYAIL.feed_json_item(
+                            data=message.text,
+                            meta=message_meta,
+                            source=FEEDER_NAME,
+                            source_uuid=FEEDER_UUID
+                        )
+                    out = f.getvalue()
 
                     print(message_id + ' has been sent to AIL')
 
