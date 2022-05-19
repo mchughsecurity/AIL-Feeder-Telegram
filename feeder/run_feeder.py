@@ -58,48 +58,51 @@ async def main():
                 message_id = FEEDER_NAME + '-' + str(conversation.id) + '-' + str(message.id)
                 message_link = 'https://t.me/' + str(conversation.entity.username) + '/' + str(message.id)
                 message_conversation = str(conversation.entity.username)
+
+                # Create meta-data for Telegram Message
+                message_meta = {
+                    'telegram:message_id': str(message.id),
+                    'telegram:conversation_id': str(conversation.id),
+                    'telegram:message_datetime': message.date.strftime('%d/%m/%Y %H:%M:%S %Z'),
+                    'telegram:conversation': message_conversation,
+                    'telegram:message_link': message_link
+                }
+                # print(json_message)
+
+                # Check the Redis cache
+                if REDIS.exists("c:{}".format(message_id)):
+                    print(message_id + ' already exists in Redis.')
+                    REDIS.expire("c:{}".format(message_id), 3600)
+                    # sys.exit(0)
+                else:
+                    # Set in Redis and send to AIL
+                    try:
+                        REDIS.set("c:{}".format(message_id), message.text)
+                        REDIS.expire("c:{}".format(message_id), 3600)
+                        print(message_id + ' has been added to Redis')
+
+                        f = io.StringIO()
+                        with redirect_stdout(f):
+                            ail_response = PYAIL.feed_json_item(
+                                data=message.text,
+                                meta=message_meta,
+                                source=FEEDER_NAME,
+                                source_uuid=FEEDER_UUID
+                            )
+                        out = f.getvalue()
+
+                        print(message_id + ' has been sent to AIL')
+
+                        # print(ail_response)
+                    except Exception as e:
+                        print(e)
+                        # sys.exit(0)
+
             except Exception as e:
                 print(e)
-                sys.exit(0)
-
-            # Create meta-data for Telegram Message
-            message_meta = {
-                'telegram:message_id': str(message.id),
-                'telegram:conversation_id': str(conversation.id),
-                'telegram:message_datetime': message.date.strftime('%d/%m/%Y %H:%M:%S %Z'),
-                'telegram:conversation': message_conversation,
-                'telegram:message_link': message_link
-            }
-            # print(json_message)
-
-            # Check the Redis cache
-            if REDIS.exists("c:{}".format(message_id)):
-                print(message_id + ' already exists in Redis.')
-                REDIS.expire("c:{}".format(message_id), 3600)
                 # sys.exit(0)
-            else:
-                # Set in Redis and send to AIL
-                try:
-                    REDIS.set("c:{}".format(message_id), message.text)
-                    REDIS.expire("c:{}".format(message_id), 3600)
-                    print(message_id + ' has been added to Redis')
 
-                    f = io.StringIO()
-                    with redirect_stdout(f):
-                        ail_response = PYAIL.feed_json_item(
-                            data=message.text,
-                            meta=message_meta,
-                            source=FEEDER_NAME,
-                            source_uuid=FEEDER_UUID
-                        )
-                    out = f.getvalue()
 
-                    print(message_id + ' has been sent to AIL')
-
-                    # print(ail_response)
-                except Exception as e:
-                    print(e)
-                    # sys.exit(0)
 
 
 with TELEGRAM:
